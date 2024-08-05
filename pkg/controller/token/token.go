@@ -43,7 +43,7 @@ func (base *Controller) GetConnToken(c *gin.Context) {
 	}
 
 	base.Logger.Info("token generated successfully")
-	rd := utility.BuildSuccessResponse(http.StatusCreated, "user created successfully", respData)
+	rd := utility.BuildSuccessResponse(http.StatusOK, "token generated successfully", respData)
 	c.JSON(code, rd)
 }
 
@@ -83,6 +83,6 @@ func (base *Controller) GetSubToken(c *gin.Context) {
 	}
 
 	base.Logger.Info("token generated successfully")
-	rd := utility.BuildSuccessResponse(http.StatusCreated, "user created successfully", respData)
+	rd := utility.BuildSuccessResponse(http.StatusOK, "token generated successfully", respData)
 	c.JSON(code, rd)
 }

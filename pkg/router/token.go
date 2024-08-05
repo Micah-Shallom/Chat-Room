@@ -20,7 +20,7 @@ func TokenGen(r *gin.Engine, ApiVersion string, validator *validator.Validate, d
 	tokenUrl := r.Group(fmt.Sprintf("%v/token", ApiVersion), middleware.Authorize(db.Postgresql))
 	{
 		tokenUrl.GET("/connection", token.GetConnToken)
-		tokenUrl.GET("/subscription", token.GetSubToken)
+		tokenUrl.POST("/subscription", token.GetSubToken)
 	}
 	return r
 }
