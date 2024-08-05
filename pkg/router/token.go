@@ -8,6 +8,7 @@ import (
 
 	"github.com/hngprojects/hng_boilerplate_golang_web/external/request"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/token"
+	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/middleware"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage"
 	"github.com/hngprojects/hng_boilerplate_golang_web/utility"
 )
@@ -16,7 +17,7 @@ func TokenGen(r *gin.Engine, ApiVersion string, validator *validator.Validate, d
 	extReq := request.ExternalRequest{Logger: logger, Test: false}
 	token := token.Controller{Db: db, Validator: validator, Logger: logger, ExtReq: extReq}
 
-	tokenUrl := r.Group(fmt.Sprintf("%v/token", ApiVersion))
+	tokenUrl := r.Group(fmt.Sprintf("%v/token", ApiVersion), middleware.Authorize(db.Postgresql))
 	{
 		tokenUrl.POST("/connection", token.GetConnToken)
 		tokenUrl.GET("/subscription", token.GetSubToken)

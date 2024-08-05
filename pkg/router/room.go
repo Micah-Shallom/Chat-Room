@@ -8,6 +8,7 @@ import (
 
 	"github.com/hngprojects/hng_boilerplate_golang_web/external/request"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/room"
+	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/middleware"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage"
 	"github.com/hngprojects/hng_boilerplate_golang_web/utility"
 )
@@ -16,7 +17,7 @@ func Room(r *gin.Engine, ApiVersion string, validator *validator.Validate, db *s
 	extReq := request.ExternalRequest{Logger: logger, Test: false}
 	room := room.Controller{Db: db, Validator: validator, Logger: logger, ExtReq: extReq}
 
-	roomUrl := r.Group(fmt.Sprintf("%v/rooms", ApiVersion))
+	roomUrl := r.Group(fmt.Sprintf("%v/rooms", ApiVersion), middleware.Authorize(db.Postgresql))
 	{
 		roomUrl.GET("/", room.GetRooms)
 		roomUrl.POST("/", room.CreateRoom)
