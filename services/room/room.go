@@ -2,7 +2,6 @@ package room
 
 import (
 	"errors"
-
 	"net/http"
 
 	"gorm.io/gorm"
@@ -87,26 +86,6 @@ func LeaveRoom(db *gorm.DB, room_id, user_id string) error {
 		return err
 	}
 	return nil
-
-}
-
-func AddRoomMsg(req models.CreateMessageRequest, db *gorm.DB) (int, error) {
-
-	var message models.Message
-
-	message = models.Message{
-		Content: req.Content,
-		RoomID:  req.RoomId,
-		UserID:  req.UserId,
-	}
-
-	err := message.CreateMessage(db)
-
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
-
-	return http.StatusCreated, nil
 
 }
 

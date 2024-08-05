@@ -4,9 +4,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/hngprojects/hng_boilerplate_golang_web/internal/models"
-	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage/postgresql"
 	"gorm.io/gorm"
+
+	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage/postgresql"
 )
 
 type Room struct {
@@ -58,9 +58,9 @@ func (r *Room) GetRooms(db *gorm.DB) ([]Room, error) {
 	return rooms, nil
 }
 
-func (r *Room) GetRoomMessages(db *gorm.DB, roomID string) ([]models.Message, error) {
-	//query the room and get all the messages
-	var messages []models.Message
+func (r *Room) GetRoomMessages(db *gorm.DB, roomID string) ([]Message, error) {
+
+	var messages []Message
 
 	err := postgresql.SelectAllFromDb(
 		db.Where("room_id = ?", roomID),
@@ -77,11 +77,8 @@ func (r *Room) GetRoomMessages(db *gorm.DB, roomID string) ([]models.Message, er
 }
 
 func (r *Room) AddUserToRoom(db *gorm.DB, roomID, userID string) error {
-	//add user to room
-	//check if user is already in room
-	//if user is not in room, add user to room
 
-	var user models.User
+	var user User
 	var room Room
 
 	_, err := user.GetUserByID(db, userID)
@@ -94,14 +91,13 @@ func (r *Room) AddUserToRoom(db *gorm.DB, roomID, userID string) error {
 		return errors.New("room does not exist")
 	}
 
-	var userRoom models.UserRoom
+	var userRoom UserRoom
 	err, _ = postgresql.SelectOneFromDb(db, &userRoom, "room_id = ? AND user_id = ?", roomID, userID)
 	if err != nil {
 		return errors.New("user already in room")
 	}
 
-	//if user not in room, add user to room
-	userRoom = models.UserRoom{
+	userRoom = UserRoom{
 		RoomID: roomID,
 		UserID: userID,
 	}
@@ -114,10 +110,7 @@ func (r *Room) AddUserToRoom(db *gorm.DB, roomID, userID string) error {
 }
 
 func (r *Room) RemoveUserFromRoom(db *gorm.DB, roomID, userID string) error {
-	//remove user from room
-	//check if user is in room
-	//if user is in room, remove user from room
-	var userRoom models.UserRoom
+	var userRoom UserRoom
 
 	err, _ := postgresql.SelectOneFromDb(db, &userRoom, "room_id = ? AND user_id = ?", roomID, userID)
 	if err != nil {
