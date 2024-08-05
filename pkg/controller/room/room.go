@@ -29,6 +29,7 @@ func (base *Controller) CreateRoom(c *gin.Context) {
 
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
+		base.Logger.Info("error parsing request body")
 		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Failed to parse request body", err, nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
@@ -36,6 +37,7 @@ func (base *Controller) CreateRoom(c *gin.Context) {
 
 	err = base.Validator.Struct(&req)
 	if err != nil {
+		base.Logger.Info("validation failed")
 		rd := utility.BuildErrorResponse(http.StatusUnprocessableEntity, "error", "Validation failed", utility.ValidationResponse(err, base.Validator), nil)
 		c.JSON(http.StatusUnprocessableEntity, rd)
 		return
@@ -43,13 +45,14 @@ func (base *Controller) CreateRoom(c *gin.Context) {
 
 	respData, err := room.CreateRoom(req, base.Db.Postgresql)
 	if err != nil {
+		base.Logger.Info("error creating room")
 		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
 	}
 
-	base.Logger.Info("user created successfully")
-	rd := utility.BuildSuccessResponse(http.StatusCreated, "user created successfully", respData)
+	base.Logger.Info("room created successfully")
+	rd := utility.BuildSuccessResponse(http.StatusCreated, "room created successfully", respData)
 	c.JSON(http.StatusCreated, rd)
 }
 
@@ -64,45 +67,26 @@ func (base *Controller) GetRooms(c *gin.Context) {
 		return
 	}
 
-	base.Logger.Info("user created successfully")
-	rd := utility.BuildSuccessResponse(http.StatusCreated, "user created successfully", respData)
-	c.JSON(http.StatusCreated, rd)
+	base.Logger.Info("rooms retrieved successfully")
+	rd := utility.BuildSuccessResponse(http.StatusOK, "rooms retrieved successfully", respData)
+	c.JSON(http.StatusOK, rd)
 }
 
 func (base *Controller) GetRoom(c *gin.Context) {
-	var req models.CreateUserRequestModel
+	room_id := c.Param("roomID")
 
-	err := c.ShouldBindJSON(&req)
-	if err != nil {
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Failed to parse request body", err, nil)
-		c.JSON(http.StatusBadRequest, rd)
-		return
-	}
 
-	err = base.Validator.Struct(&req)
+	respData, err := room.GetRoom(base.Db.Postgresql, room_id)
 	if err != nil {
-		rd := utility.BuildErrorResponse(http.StatusUnprocessableEntity, "error", "Validation failed", utility.ValidationResponse(err, base.Validator), nil)
-		c.JSON(http.StatusUnprocessableEntity, rd)
-		return
-	}
-
-	reqData, err := auth.ValidateCreateUserRequest(req, base.Db.Postgresql)
-	if err != nil {
+		base.Logger.Info("error getting room")
 		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
 	}
 
-	respData, code, err := auth.CreateUser(reqData, base.Db.Postgresql)
-	if err != nil {
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
-		c.JSON(http.StatusBadRequest, rd)
-		return
-	}
-
-	base.Logger.Info("user created successfully")
-	rd := utility.BuildSuccessResponse(http.StatusCreated, "user created successfully", respData)
-	c.JSON(code, rd)
+	base.Logger.Info("room retrieved successfully")
+	rd := utility.BuildSuccessResponse(http.StatusOK, "room retreived successfully", respData)
+	c.JSON(http.StatusOK, rd)
 }
 
 func (base *Controller) GetRoomMsg(c *gin.Context) {
@@ -177,40 +161,29 @@ func (base *Controller) AddRoomMsg(c *gin.Context) {
 	c.JSON(code, rd)
 }
 
+
 func (base *Controller) JoinRoom(c *gin.Context) {
-	var req models.CreateUserRequestModel
-
-	err := c.ShouldBindJSON(&req)
-	if err != nil {
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Failed to parse request body", err, nil)
+	room_id := c.Param("roomID")
+	claims, exists := c.Get("claims")
+	if !exists {
+		base.Logger.Info("error getting claims")
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "error getting claims", nil, nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
 	}
+	user_id := claims.(map[string]interface{})["id"].(string)
 
-	err = base.Validator.Struct(&req)
+	err := room.JoinRoom(base.Db.Postgresql, room_id, user_id)
 	if err != nil {
-		rd := utility.BuildErrorResponse(http.StatusUnprocessableEntity, "error", "Validation failed", utility.ValidationResponse(err, base.Validator), nil)
-		c.JSON(http.StatusUnprocessableEntity, rd)
-		return
-	}
-
-	reqData, err := auth.ValidateCreateUserRequest(req, base.Db.Postgresql)
-	if err != nil {
+		base.Logger.Info("error joining room")
 		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
 	}
 
-	respData, code, err := auth.CreateUser(reqData, base.Db.Postgresql)
-	if err != nil {
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
-		c.JSON(http.StatusBadRequest, rd)
-		return
-	}
-
-	base.Logger.Info("user created successfully")
-	rd := utility.BuildSuccessResponse(http.StatusCreated, "user created successfully", respData)
-	c.JSON(code, rd)
+	base.Logger.Info("room joined successfully")
+	rd := utility.BuildSuccessResponse(http.StatusOK, "room joined successfully", nil)
+	c.JSON(http.StatusOK, rd)
 }
 
 func (base *Controller) LeaveRoom(c *gin.Context) {
