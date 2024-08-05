@@ -3,8 +3,9 @@ package models
 import (
 	"time"
 
-	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage/postgresql"
 	"gorm.io/gorm"
+
+	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage/postgresql"
 )
 
 type Message struct {
@@ -17,6 +18,8 @@ type Message struct {
 
 type CreateMessageRequest struct {
 	Content string `json:"content" validate:"required"`
+	UserId  string `json:"user_id"`
+	RoomId  string `json:"room_id"`
 }
 
 func (m *Message) CreateMessage(db *gorm.DB) error {

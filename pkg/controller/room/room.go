@@ -1,10 +1,13 @@
 package room
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 
 	"github.com/hngprojects/hng_boilerplate_golang_web/external/request"
 	"github.com/hngprojects/hng_boilerplate_golang_web/internal/models"
@@ -38,8 +41,7 @@ func (base *Controller) CreateRoom(c *gin.Context) {
 		return
 	}
 
-
-	respData, err := room.CreateRoom(req,  base.Db.Postgresql)
+	respData, err := room.CreateRoom(req, base.Db.Postgresql)
 	if err != nil {
 		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
 		c.JSON(http.StatusBadRequest, rd)
@@ -51,15 +53,13 @@ func (base *Controller) CreateRoom(c *gin.Context) {
 	c.JSON(http.StatusCreated, rd)
 }
 
-
-
 func (base *Controller) GetRooms(c *gin.Context) {
 
 	respData, err := room.GetRooms(base.Db.Postgresql)
 	if err != nil {
 		base.Logger.Info("error getting rooms")
 		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error",
-	err.Error(), err, nil)
+			err.Error(), err, nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
 	}
@@ -68,7 +68,6 @@ func (base *Controller) GetRooms(c *gin.Context) {
 	rd := utility.BuildSuccessResponse(http.StatusCreated, "user created successfully", respData)
 	c.JSON(http.StatusCreated, rd)
 }
-
 
 func (base *Controller) GetRoom(c *gin.Context) {
 	var req models.CreateUserRequestModel
@@ -107,43 +106,31 @@ func (base *Controller) GetRoom(c *gin.Context) {
 }
 
 func (base *Controller) GetRoomMsg(c *gin.Context) {
-	var req models.CreateUserRequestModel
 
-	err := c.ShouldBindJSON(&req)
-	if err != nil {
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Failed to parse request body", err, nil)
+	RoomId := c.Param("roomId")
+
+	if _, err := uuid.Parse(RoomId); err != nil {
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "invalid room id format", errors.New("failed to parse room id"), nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
 	}
 
-	err = base.Validator.Struct(&req)
-	if err != nil {
-		rd := utility.BuildErrorResponse(http.StatusUnprocessableEntity, "error", "Validation failed", utility.ValidationResponse(err, base.Validator), nil)
-		c.JSON(http.StatusUnprocessableEntity, rd)
-		return
-	}
-
-	reqData, err := auth.ValidateCreateUserRequest(req, base.Db.Postgresql)
+	respData, code, err := room.GetRoomMsg(RoomId, base.Db.Postgresql)
 	if err != nil {
 		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
 	}
 
-	respData, code, err := auth.CreateUser(reqData, base.Db.Postgresql)
-	if err != nil {
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
-		c.JSON(http.StatusBadRequest, rd)
-		return
-	}
-
-	base.Logger.Info("user created successfully")
-	rd := utility.BuildSuccessResponse(http.StatusCreated, "user created successfully", respData)
+	base.Logger.Info("room message fetched successfully")
+	rd := utility.BuildSuccessResponse(http.StatusCreated, "room message fetched successfully", respData)
 	c.JSON(code, rd)
 }
 
 func (base *Controller) AddRoomMsg(c *gin.Context) {
-	var req models.CreateUserRequestModel
+	var (
+		req models.CreateMessageRequest
+	)
 
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
@@ -159,22 +146,34 @@ func (base *Controller) AddRoomMsg(c *gin.Context) {
 		return
 	}
 
-	reqData, err := auth.ValidateCreateUserRequest(req, base.Db.Postgresql)
+	req.RoomId = c.Param("roomId")
+
+	if _, err := uuid.Parse(req.RoomId); err != nil {
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "invalid room id format", errors.New("failed to parse room id"), nil)
+		c.JSON(http.StatusBadRequest, rd)
+		return
+	}
+
+	claims, exists := c.Get("userClaims")
+
+	if !exists {
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "unable to get user claims", errors.New("user not authorized"), nil)
+		c.JSON(http.StatusBadRequest, rd)
+		return
+	}
+	userClaims := claims.(jwt.MapClaims)
+
+	req.UserId = userClaims["user_id"].(string)
+
+	code, err := room.AddRoomMsg(req, base.Db.Postgresql)
 	if err != nil {
 		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
 	}
 
-	respData, code, err := auth.CreateUser(reqData, base.Db.Postgresql)
-	if err != nil {
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
-		c.JSON(http.StatusBadRequest, rd)
-		return
-	}
-
-	base.Logger.Info("user created successfully")
-	rd := utility.BuildSuccessResponse(http.StatusCreated, "user created successfully", respData)
+	base.Logger.Info("message added successfully")
+	rd := utility.BuildSuccessResponse(http.StatusCreated, "message added successfully", gin.H{})
 	c.JSON(code, rd)
 }
 
