@@ -27,6 +27,17 @@ type Controller struct {
 func (base *Controller) CreateRoom(c *gin.Context) {
 	var req models.CreateRoomRequest
 
+	claims, exists := c.Get("claims")
+	if !exists {
+		base.Logger.Info("error getting claims")
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "error getting claims", nil, nil)
+		c.JSON(http.StatusBadRequest, rd)
+		return
+	}
+	userClaims := claims.(jwt.MapClaims)
+
+	userId := userClaims["user_id"].(string)
+
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
 		base.Logger.Info("error parsing request body")
@@ -43,7 +54,7 @@ func (base *Controller) CreateRoom(c *gin.Context) {
 		return
 	}
 
-	respData, err := room.CreateRoom(req, base.Db.Postgresql)
+	respData, err := room.CreateRoom(req, base.Db.Postgresql, userId)
 	if err != nil {
 		base.Logger.Info("error creating room")
 		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
@@ -74,7 +85,6 @@ func (base *Controller) GetRooms(c *gin.Context) {
 
 func (base *Controller) GetRoom(c *gin.Context) {
 	room_id := c.Param("roomID")
-
 
 	respData, err := room.GetRoom(base.Db.Postgresql, room_id)
 	if err != nil {
@@ -160,7 +170,6 @@ func (base *Controller) AddRoomMsg(c *gin.Context) {
 	rd := utility.BuildSuccessResponse(http.StatusCreated, "message added successfully", gin.H{})
 	c.JSON(code, rd)
 }
-
 
 func (base *Controller) JoinRoom(c *gin.Context) {
 	room_id := c.Param("roomID")

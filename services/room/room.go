@@ -20,7 +20,7 @@ func GetRooms(db *gorm.DB) ([]models.Room, error) {
 	return rooms, nil
 }
 
-func CreateRoom(req models.CreateRoomRequest, db *gorm.DB) (models.Room, error) {
+func CreateRoom(req models.CreateRoomRequest, db *gorm.DB, user_id string) (models.Room, error) {
 
 	room := models.Room{
 		ID:          utility.GenerateUUID(),
@@ -32,6 +32,12 @@ func CreateRoom(req models.CreateRoomRequest, db *gorm.DB) (models.Room, error) 
 	if err != nil {
 		return room, err
 	}
+
+	err = room.AddUserToRoom(db, room.ID, user_id)
+	if err != nil {
+		return room, err
+	}
+
 	return room, nil
 }
 
@@ -90,10 +96,7 @@ func LeaveRoom(db *gorm.DB, room_id, user_id string) error {
 }
 
 func AddRoomMsg(req models.CreateMessageRequest, db *gorm.DB) (int, error) {
-
-	var message models.Message
-
-	message = models.Message{
+	message := models.Message{
 		Content: req.Content,
 		RoomID:  req.RoomId,
 		UserID:  req.UserId,
@@ -106,5 +109,4 @@ func AddRoomMsg(req models.CreateMessageRequest, db *gorm.DB) (int, error) {
 	}
 
 	return http.StatusCreated, nil
-
 }
