@@ -38,7 +38,6 @@ func CreateToken(user models.User) (*TokenDetailDTO, error) {
 	// specify user claims
 	userClaims["user_id"] = user.ID
 	userClaims["access_uuid"] = tokenData.AccessUuid
-	userClaims["role"] = user.Role
 	userClaims["exp"] = tokenData.ExpiresAt.Unix()
 	userClaims["authorised"] = true
 

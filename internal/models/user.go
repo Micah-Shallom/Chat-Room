@@ -12,10 +12,10 @@ type User struct {
 	Name      string         `gorm:"column:name; type:varchar(255)" json:"name"`
 	Email     string         `gorm:"column:email; type:varchar(255)" json:"email"`
 	Profile   Profile        `gorm:"foreignKey:Userid;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"profile"`
+	Rooms     []Room         `gorm:"many2many:user_rooms;" json:"rooms"`
 	Password  string         `gorm:"column:password; type:text; not null" json:"-"`
 	CreatedAt time.Time      `gorm:"column:created_at; not null; autoCreateTime" json:"created_at"`
 	UpdatedAt time.Time      `gorm:"column:updated_at; null; autoUpdateTime" json:"updated_at"`
-	Role      int            `gorm:"foreignKey:RoleID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"role"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
