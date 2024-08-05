@@ -36,6 +36,7 @@ func (r *Room) CreateRoom(db *gorm.DB) error {
 	return nil
 }
 
+
 func (r *Room) GetRoomByID(db *gorm.DB, roomID string) (Room, error) {
 	var room Room 
 
@@ -44,4 +45,15 @@ func (r *Room) GetRoomByID(db *gorm.DB, roomID string) (Room, error) {
 		return room, nerr
 	}
 	return room, nil
+}
+
+
+func (r *Room) GetRooms(db *gorm.DB) ([]Room, error) {
+	var rooms []Room
+
+	err := postgresql.SelectAllFromDb(db,"", &rooms, "")
+	if err != nil {
+		return rooms, err
+	}
+	return rooms, nil
 }
