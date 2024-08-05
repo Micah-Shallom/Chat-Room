@@ -1,12 +1,19 @@
 package tests
 
 import (
+	"bytes"
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/hngprojects/hng_boilerplate_golang_web/internal/config"
+	"github.com/hngprojects/hng_boilerplate_golang_web/internal/models"
 	"github.com/hngprojects/hng_boilerplate_golang_web/internal/models/migrations"
+	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/auth"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage/postgresql"
 	"github.com/hngprojects/hng_boilerplate_golang_web/utility"
@@ -45,4 +52,52 @@ func AssertBool(t *testing.T, got, expected bool) {
 	if got != expected {
 		t.Errorf("handler returned wrong boolean: got %v expected %v", got, expected)
 	}
+}
+
+func SignupUser(t *testing.T, r *gin.Engine, auth auth.Controller, userSignUpData models.CreateUserRequestModel, admin bool) {
+	var (
+		signupPath = "/api/v1/auth/register"
+		signupURI  = url.URL{Path: signupPath}
+	)
+
+	r.POST(signupPath, auth.RegisterUser)
+
+	var b bytes.Buffer
+	json.NewEncoder(&b).Encode(userSignUpData)
+	req, err := http.NewRequest(http.MethodPost, signupURI.String(), &b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+}
+
+func GetLoginToken(t *testing.T, r *gin.Engine, auth auth.Controller, loginData models.LoginRequestModel) string {
+	var (
+		loginPath = "/api/v1/auth/login"
+		loginURI  = url.URL{Path: loginPath}
+	)
+	r.POST(loginPath, auth.LoginUser)
+	var b bytes.Buffer
+	json.NewEncoder(&b).Encode(loginData)
+	req, err := http.NewRequest(http.MethodPost, loginURI.String(), &b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		return ""
+	}
+
+	data := ParseResponse(rr)
+	dataM := data["data"].(map[string]interface{})
+	token := dataM["access_token"].(string)
+
+	return token
 }
