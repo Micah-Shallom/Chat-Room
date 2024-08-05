@@ -12,7 +12,6 @@ import (
 	"github.com/hngprojects/hng_boilerplate_golang_web/external/request"
 	"github.com/hngprojects/hng_boilerplate_golang_web/internal/models"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage"
-	"github.com/hngprojects/hng_boilerplate_golang_web/services/auth"
 	"github.com/hngprojects/hng_boilerplate_golang_web/services/room"
 	"github.com/hngprojects/hng_boilerplate_golang_web/utility"
 )
@@ -43,11 +42,11 @@ func (base *Controller) CreateRoom(c *gin.Context) {
 		return
 	}
 
-	respData, err := room.CreateRoom(req, base.Db.Postgresql)
+	respData, code, err := room.CreateRoom(req, base.Db.Postgresql)
 	if err != nil {
 		base.Logger.Info("error creating room")
 		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
-		c.JSON(http.StatusBadRequest, rd)
+		c.JSON(code, rd)
 		return
 	}
 
@@ -58,10 +57,10 @@ func (base *Controller) CreateRoom(c *gin.Context) {
 
 func (base *Controller) GetRooms(c *gin.Context) {
 
-	respData, err := room.GetRooms(base.Db.Postgresql)
+	respData, code, err := room.GetRooms(base.Db.Postgresql)
 	if err != nil {
 		base.Logger.Info("error getting rooms")
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error",
+		rd := utility.BuildErrorResponse(code, "error",
 			err.Error(), err, nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
@@ -73,13 +72,18 @@ func (base *Controller) GetRooms(c *gin.Context) {
 }
 
 func (base *Controller) GetRoom(c *gin.Context) {
-	room_id := c.Param("roomID")
+	room_id := c.Param("roomId")
 
+	if _, err := uuid.Parse(room_id); err != nil {
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "invalid room id format", errors.New("failed to parse room id"), nil)
+		c.JSON(http.StatusBadRequest, rd)
+		return
+	}
 
-	respData, err := room.GetRoom(base.Db.Postgresql, room_id)
+	respData, code, err := room.GetRoom(base.Db.Postgresql, room_id)
 	if err != nil {
 		base.Logger.Info("error getting room")
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
+		rd := utility.BuildErrorResponse(code, "error", err.Error(), err, nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
 	}
@@ -161,22 +165,26 @@ func (base *Controller) AddRoomMsg(c *gin.Context) {
 	c.JSON(code, rd)
 }
 
-
 func (base *Controller) JoinRoom(c *gin.Context) {
-	room_id := c.Param("roomID")
-	claims, exists := c.Get("claims")
+
+	room_id := c.Param("roomId")
+
+	claims, exists := c.Get("userClaims")
 	if !exists {
 		base.Logger.Info("error getting claims")
 		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "error getting claims", nil, nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
 	}
-	user_id := claims.(map[string]interface{})["id"].(string)
 
-	err := room.JoinRoom(base.Db.Postgresql, room_id, user_id)
+	userClaims := claims.(jwt.MapClaims)
+
+	user_id := userClaims["user_id"].(string)
+
+	code, err := room.JoinRoom(base.Db.Postgresql, room_id, user_id)
 	if err != nil {
 		base.Logger.Info("error joining room")
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
+		rd := utility.BuildErrorResponse(code, "error", err.Error(), err, nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
 	}
@@ -187,30 +195,27 @@ func (base *Controller) JoinRoom(c *gin.Context) {
 }
 
 func (base *Controller) LeaveRoom(c *gin.Context) {
-	var req models.CreateUserRequestModel
 
-	err := c.ShouldBindJSON(&req)
-	if err != nil {
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Failed to parse request body", err, nil)
+	roomId := c.Param("roomId")
+
+	if _, err := uuid.Parse(roomId); err != nil {
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "invalid room id format", errors.New("failed to parse room id"), nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
 	}
 
-	err = base.Validator.Struct(&req)
-	if err != nil {
-		rd := utility.BuildErrorResponse(http.StatusUnprocessableEntity, "error", "Validation failed", utility.ValidationResponse(err, base.Validator), nil)
-		c.JSON(http.StatusUnprocessableEntity, rd)
-		return
-	}
+	claims, exists := c.Get("userClaims")
 
-	reqData, err := auth.ValidateCreateUserRequest(req, base.Db.Postgresql)
-	if err != nil {
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
+	if !exists {
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "unable to get user claims", errors.New("user not authorized"), nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
 	}
+	userClaims := claims.(jwt.MapClaims)
 
-	respData, code, err := auth.CreateUser(reqData, base.Db.Postgresql)
+	user_id := userClaims["user_id"].(string)
+
+	code, err := room.LeaveRoom(base.Db.Postgresql, roomId, user_id)
 	if err != nil {
 		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
 		c.JSON(http.StatusBadRequest, rd)
@@ -218,6 +223,6 @@ func (base *Controller) LeaveRoom(c *gin.Context) {
 	}
 
 	base.Logger.Info("user created successfully")
-	rd := utility.BuildSuccessResponse(http.StatusCreated, "user created successfully", respData)
+	rd := utility.BuildSuccessResponse(http.StatusCreated, "user created successfully", gin.H{})
 	c.JSON(code, rd)
 }

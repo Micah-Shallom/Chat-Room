@@ -41,7 +41,7 @@ func (r *Room) CreateRoom(db *gorm.DB) error {
 func (r *Room) GetRoomByID(db *gorm.DB, roomID string) (Room, error) {
 	var room Room
 
-	err, nerr := postgresql.SelectOneFromDb(db, &room, "room_id = ?", roomID)
+	err, nerr := postgresql.SelectOneFromDb(db, &room, "id = ?", roomID)
 	if err != nil {
 		return room, nerr
 	}
@@ -92,8 +92,8 @@ func (r *Room) AddUserToRoom(db *gorm.DB, roomID, userID string) error {
 	}
 
 	var userRoom UserRoom
-	err, _ = postgresql.SelectOneFromDb(db, &userRoom, "room_id = ? AND user_id = ?", roomID, userID)
-	if err != nil {
+	exist := postgresql.CheckExists(db, &userRoom, "room_id = ? AND user_id = ?", roomID, userID)
+	if exist {
 		return errors.New("user already in room")
 	}
 
@@ -112,12 +112,12 @@ func (r *Room) AddUserToRoom(db *gorm.DB, roomID, userID string) error {
 func (r *Room) RemoveUserFromRoom(db *gorm.DB, roomID, userID string) error {
 	var userRoom UserRoom
 
-	err, _ := postgresql.SelectOneFromDb(db, &userRoom, "room_id = ? AND user_id = ?", roomID, userID)
-	if err != nil {
+	exist := postgresql.CheckExists(db, &userRoom, "room_id = ? AND user_id = ?", roomID, userID)
+	if !exist {
 		return errors.New("user not in room")
 	}
 
-	err = postgresql.DeleteRecordFromDb(db, &userRoom)
+	err := postgresql.DeleteRecordFromDb(db, &userRoom)
 	if err != nil {
 		return errors.New("could not remove user from room")
 	}

@@ -10,17 +10,17 @@ import (
 	"github.com/hngprojects/hng_boilerplate_golang_web/utility"
 )
 
-func GetRooms(db *gorm.DB) ([]models.Room, error) {
+func GetRooms(db *gorm.DB) ([]models.Room, int, error) {
 	var room models.Room
 
 	rooms, err := room.GetRooms(db)
 	if err != nil {
-		return rooms, err
+		return rooms, http.StatusInternalServerError, err
 	}
-	return rooms, nil
+	return rooms, http.StatusOK, nil
 }
 
-func CreateRoom(req models.CreateRoomRequest, db *gorm.DB) (models.Room, error) {
+func CreateRoom(req models.CreateRoomRequest, db *gorm.DB) (models.Room, int, error) {
 
 	room := models.Room{
 		ID:          utility.GenerateUUID(),
@@ -30,19 +30,19 @@ func CreateRoom(req models.CreateRoomRequest, db *gorm.DB) (models.Room, error) 
 
 	err := room.CreateRoom(db)
 	if err != nil {
-		return room, err
+		return room, http.StatusInternalServerError, err
 	}
-	return room, nil
+	return room, http.StatusOK, nil
 }
 
-func GetRoom(db *gorm.DB, roomID string) (models.Room, error) {
+func GetRoom(db *gorm.DB, roomID string) (models.Room, int, error) {
 	var room models.Room
 
 	fetchedRoom, err := room.GetRoomByID(db, roomID)
 	if err != nil {
-		return fetchedRoom, err
+		return fetchedRoom, http.StatusInternalServerError, err
 	}
-	return fetchedRoom, nil
+	return fetchedRoom, http.StatusOK, nil
 }
 
 func GetRoomMsg(roomId string, db *gorm.DB) ([]models.Message, int, error) {
@@ -58,34 +58,34 @@ func GetRoomMsg(roomId string, db *gorm.DB) ([]models.Message, int, error) {
 
 }
 
-func JoinRoom(db *gorm.DB, room_id, user_id string) error {
+func JoinRoom(db *gorm.DB, room_id, user_id string) (int, error) {
 	var room models.Room
 
-	_, err := GetRoom(db, room_id)
+	_, _, err := GetRoom(db, room_id)
 	if err != nil {
-		return errors.New("room does not exist")
+		return http.StatusBadRequest, errors.New("room does not exist")
 	}
 
 	err = room.AddUserToRoom(db, room_id, user_id)
 	if err != nil {
-		return err
+		return http.StatusInternalServerError, err
 	}
-	return nil
+	return http.StatusOK, nil
 }
 
-func LeaveRoom(db *gorm.DB, room_id, user_id string) error {
+func LeaveRoom(db *gorm.DB, room_id, user_id string) (int, error) {
 	var room models.Room
 
-	_, err := GetRoom(db, room_id)
+	_, _, err := GetRoom(db, room_id)
 	if err != nil {
-		return errors.New("room does not exist")
+		return http.StatusBadRequest, errors.New("room does not exist")
 	}
 
 	err = room.RemoveUserFromRoom(db, room_id, user_id)
 	if err != nil {
-		return err
+		return http.StatusInternalServerError, err
 	}
-	return nil
+	return http.StatusOK, nil
 
 }
 
