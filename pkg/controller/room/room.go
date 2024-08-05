@@ -222,7 +222,7 @@ func (base *Controller) LeaveRoom(c *gin.Context) {
 		return
 	}
 
-	base.Logger.Info("user created successfully")
-	rd := utility.BuildSuccessResponse(http.StatusCreated, "user created successfully", gin.H{})
+	base.Logger.Info("user left room successfully")
+	rd := utility.BuildSuccessResponse(http.StatusCreated, "user left room successfully", gin.H{})
 	c.JSON(code, rd)
 }

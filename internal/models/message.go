@@ -9,7 +9,7 @@ import (
 )
 
 type Message struct {
-	ID        string    `gorm:"column:message_id; type:int; autoIncrement; primaryKey" json:"message_id"`
+	ID        int       `gorm:"column:id; type:serial; primaryKey" json:"id"`
 	Content   string    `gorm:"column:content; type:text; not null" json:"content"`
 	RoomID    string    `gorm:"type:uuid;not null" json:"room_id"`
 	UserID    string    `gorm:"type:uuid;not null" json:"user_id"`
