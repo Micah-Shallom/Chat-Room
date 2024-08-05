@@ -6,6 +6,7 @@ import (
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+
 	"github.com/hngprojects/hng_boilerplate_golang_web/internal/config"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/middleware"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage"
@@ -33,6 +34,8 @@ func Setup(logger *utility.Logger, validator *validator.Validate, db *storage.Da
 	ApiVersion := "api/v1"
 	Health(r, ApiVersion, validator, db, logger)
 	Auth(r, ApiVersion, validator, db, logger)
+	Room(r, ApiVersion, validator, db, logger)
+	TokenGen(r, ApiVersion, validator, db, logger)	
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
