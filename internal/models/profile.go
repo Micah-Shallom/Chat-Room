@@ -24,7 +24,7 @@ func (p *Profile) GetUserProfile(db *gorm.DB, userID string) (Profile, error) {
 
 	_, err := postgresql.SelectOneFromDb(db, &profile, "user_id = ?", userID)
 	if err != nil {
-		return err
+		return  profile, err
 	}
-	return nil
+	return profile, nil
 }

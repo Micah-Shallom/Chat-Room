@@ -51,7 +51,7 @@ func (r *Room) GetRoomByID(db *gorm.DB, roomID string) (Room, error) {
 func (r *Room) GetRooms(db *gorm.DB) ([]Room, error) {
 	var rooms []Room
 
-	err := postgresql.SelectAllFromDb(db, &rooms)
+	err := postgresql.SelectAllFromDb(db,"", &rooms, "")
 	if err != nil {
 		return rooms, err
 	}

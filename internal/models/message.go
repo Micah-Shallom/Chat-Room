@@ -32,9 +32,9 @@ func (m *Message) GetMessagesByRoomID(db *gorm.DB, roomID string) ([]Message, er
 
 	err := postgresql.SelectAllFromDb(db, "", &messages, "room_id = ?", roomID)
 	if err != nil {
-		return err
+		return messages, err
 	}
-	return nil
+	return messages, nil
 }
 
 func (m *Message) GetMessageByID(db *gorm.DB, messageID string) (Message, error) {
