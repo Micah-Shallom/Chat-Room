@@ -1,25 +1,27 @@
 package room
 
-func GetRooms() {
+import "gorm.io/gorm"
+
+func GetRooms(db *gorm.DB) {
 
 }
 
-func CreateRoom() {
+func CreateRoom(db *gorm.DB) {
 
 }
 
-func GetRoom() {
+func GetRoom(db *gorm.DB) {
 
 }
 
-func GetRoomMsg() {
+func GetRoomMsg(db *gorm.DB) {
 
 }
 
-func JoinRoom() {
+func JoinRoom(db *gorm.DB) {
 
 }
 
-func LeaveRoom() {
+func LeaveRoom(db *gorm.DB) {
 
 }
