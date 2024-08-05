@@ -11,6 +11,7 @@ type Configuration struct {
 	TestDatabase Database
 	App          App
 	IPStack      IPStack
+	Centrifuge   Centrifuge
 }
 
 type BaseConfig struct {
@@ -47,6 +48,8 @@ type BaseConfig struct {
 
 	IPSTACK_KEY      string `mapstructure:"IPSTACK_KEY"`
 	IPSTACK_BASE_URL string `mapstructure:"IPSTACK_BASE_URL"`
+
+	HMAC_SECRET string `mapstructure:"HMAC_SECRET"`
 }
 
 func (config *BaseConfig) SetupConfigurationn() *Configuration {
@@ -97,6 +100,10 @@ func (config *BaseConfig) SetupConfigurationn() *Configuration {
 		IPStack: IPStack{
 			Key:     config.IPSTACK_KEY,
 			BaseUrl: config.IPSTACK_BASE_URL,
+		},
+
+		Centrifuge: Centrifuge{
+			Secret: config.HMAC_SECRET,
 		},
 	}
 }
