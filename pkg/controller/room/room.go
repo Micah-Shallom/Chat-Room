@@ -53,7 +53,7 @@ func (base *Controller) CreateRoom(c *gin.Context) {
 		return
 	}
 
-	respData, code, err := room.CreateRoom(req, base.Db.Postgresql)
+	respData, code, err := room.CreateRoom(req, base.Db.Postgresql, userId)
 	if err != nil {
 		base.Logger.Info("error creating room")
 		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)

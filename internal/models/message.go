@@ -22,7 +22,9 @@ type CreateMessageRequest struct {
 	RoomId  string `json:"room_id"`
 }
 
-func (m *Message) CreateMessage(db *gorm.DB) error {
+func (m *Message) CreateMessage(db *gorm.DB, userID string) error {
+	
+
 	err := postgresql.CreateOneRecord(db, m)
 	if err != nil {
 		return err

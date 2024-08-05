@@ -1,8 +1,6 @@
 package test_room
 
 
-package test_tokens
-
 import (
 	"bytes"
 	"encoding/json"
@@ -52,7 +50,7 @@ func TestRoom(t *testing.T) {
 
 	tests := []struct {
 		Name         string
-		RequestBody  models.ChannelSubTokenReq
+		RequestBody  models.CreateRoomRequest
 		ExpectedCode int
 		Message      string
 		Method       string
@@ -60,8 +58,8 @@ func TestRoom(t *testing.T) {
 		RequestURI   url.URL
 	}{
 		{
-			Name:         "Successful connection token generation",
-			RequestBody:  models.ChannelSubTokenReq{},
+			Name:         "Room Created Successfully",
+			RequestBody:  models.CreateRoomRequest{},
 			ExpectedCode: http.StatusOK,
 			Message:      "token generated successfully",
 			Method:       http.MethodGet,
