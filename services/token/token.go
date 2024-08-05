@@ -1,9 +1,11 @@
 package token
 
-func GetConnToken() {
+import "gorm.io/gorm"
+
+func GetConnToken(db *gorm.DB) {
 
 }
 
-func GetSubToken() {
+func GetSubToken(db *gorm.DB) {
 
 }
