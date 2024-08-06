@@ -15,7 +15,6 @@ import (
 	"github.com/hngprojects/hng_boilerplate_golang_web/internal/models"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/auth"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/room"
-	tkn "github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/token"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/middleware"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage"
 	tst "github.com/hngprojects/hng_boilerplate_golang_web/tests"
@@ -55,8 +54,7 @@ func TestRoomEndpoints(t *testing.T) {
 		Username:    userSignUpData.UserName,
 	}
 
-	room_id := tst.CreateRoom(t, r, roomController, createRoomReq, false)
-	_ = room_id
+	room_id := tst.CreateRoom(t, r, roomController, db, createRoomReq, token)
 
 	tests := []struct {
 		Name         string
@@ -76,34 +74,36 @@ func TestRoomEndpoints(t *testing.T) {
 			},
 			ExpectedCode: http.StatusCreated,
 			Message:      "room created successfully",
-			Method:       http.MethodGet,
-			RequestURI:   url.URL{Path: "/api/v1/rooms"},
+			Method:       http.MethodPost,
+			RequestURI:   url.URL{Path: "/api/v1/rooms/"},
 			Headers: map[string]string{
 				"Content-Type":  "application/json",
 				"Authorization": "Bearer " + token,
 			},
 		},
-		//  {
-		// 	Name:         "Get Rooms",
-		// 	ExpectedCode: http.StatusOK,
-		// 	Message:      "rooms retrieved successfully",
-		// 	Method:       http.MethodGet,
-		// 	RequestURI:   url.URL{Path: "/api/v1/rooms/"},
-		// 	Headers: map[string]string{
-		// 		"Content-Type":  "application/json",
-		// 		"Authorization": "Bearer " + token,
-		// 	},
-		// }, {
-		// 	Name:         "Get Room",
-		// 	ExpectedCode: http.StatusOK,
-		// 	Message:      "room retrieved successfully",
-		// 	Method:       http.MethodGet,
-		// 	RequestURI:   url.URL{Path: fmt.Sprintf("/api/v1/rooms/%s", room_id)},
-		// 	Headers: map[string]string{
-		// 		"Content-Type":  "application/json",
-		// 		"Authorization": "Bearer " + token,
-		// 	},
-		// }, {
+		 {
+			Name:         "Get Rooms",
+			ExpectedCode: http.StatusOK,
+			Message:      "rooms retrieved successfully",
+			Method:       http.MethodGet,
+			RequestURI:   url.URL{Path: "/api/v1/rooms/"},
+			Headers: map[string]string{
+				"Content-Type":  "application/json",
+				"Authorization": "Bearer " + token,
+			},
+		}, 
+		{
+			Name:         "Get Room",
+			ExpectedCode: http.StatusOK,
+			Message:      "room retrieved successfully",
+			Method:       http.MethodGet,
+			RequestURI:   url.URL{Path: fmt.Sprintf("/api/v1/rooms/%s", room_id)},
+			Headers: map[string]string{
+				"Content-Type":  "application/json",
+				"Authorization": "Bearer " + token,
+			},
+		}, 
+		// {
 		// 	Name:         "Get Room Messages",
 		// 	ExpectedCode: http.StatusOK,
 		// 	Message:      "room messages fetched successfully",
@@ -146,15 +146,15 @@ func TestRoomEndpoints(t *testing.T) {
 		// },
 	}
 
-	tkn := tkn.Controller{Db: db, Validator: validatorRef, Logger: logger}
+	room := room.Controller{Db: db, Validator: validatorRef, Logger: logger}
 
 	for _, test := range tests {
 		r := gin.Default()
 
-		tknUrl := r.Group(fmt.Sprintf("%v", "/api/v1/token"), middleware.Authorize(db.Postgresql))
+		roomUrl := r.Group(fmt.Sprintf("%v", "/api/v1/rooms"), middleware.Authorize(db.Postgresql))
 		{
-			tknUrl.GET("/connection", tkn.GetConnToken)
-			tknUrl.POST("/subscription", tkn.GetConnToken)
+			roomUrl.GET("/", room.GetRooms)
+			roomUrl.POST("/", room.CreateRoom)
 
 		}
 
@@ -190,9 +190,6 @@ func TestRoomEndpoints(t *testing.T) {
 				}
 
 			}
-			genToken := data["data"].(map[string]interface{})["token"].(string)
-			tst.AssertBool(t, genToken != "", true)
-
 		})
 
 	}

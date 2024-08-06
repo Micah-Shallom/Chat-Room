@@ -105,7 +105,7 @@ func GetLoginToken(t *testing.T, r *gin.Engine, auth auth.Controller, loginData 
 	return token
 }
 
-func CreateRooom(t *testing.T, r *gin.Engine, room room.Controller, db *storage.Database, CreateData models.CreateRoomRequest, token string) string {
+func CreateRoom(t *testing.T, r *gin.Engine, room room.Controller, db *storage.Database, CreateData models.CreateRoomRequest, token string) string {
 	var (
 		createPath = "/api/v1/rooms/"
 		createURI  = url.URL{Path: createPath}
