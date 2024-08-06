@@ -3,6 +3,7 @@ package tests
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -14,6 +15,7 @@ import (
 	"github.com/hngprojects/hng_boilerplate_golang_web/internal/models"
 	"github.com/hngprojects/hng_boilerplate_golang_web/internal/models/migrations"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/auth"
+	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/room"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage/postgresql"
 	"github.com/hngprojects/hng_boilerplate_golang_web/utility"
@@ -100,4 +102,36 @@ func GetLoginToken(t *testing.T, r *gin.Engine, auth auth.Controller, loginData 
 	token := dataM["access_token"].(string)
 
 	return token
+}
+
+func CreateRoom(t *testing.T, r *gin.Engine, room room.Controller, createRoomData models.CreateRoomRequest, admin bool) string {
+	var (
+		createRoomPath = "/api/v1/rooms"
+		createRoomURI  = url.URL{Path: createRoomPath}
+	)
+
+	r.POST(createRoomPath, room.CreateRoom)
+
+	var b bytes.Buffer
+	json.NewEncoder(&b).Encode(createRoomData)
+	req, err := http.NewRequest(http.MethodPost, createRoomURI.String(), &b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	fmt.Println(rr.Body.String())
+
+	if rr.Code != http.StatusCreated {
+		t.Errorf("handler returned wrong status code: got status %d expected status %d", rr.Code, http.StatusCreated)
+	}
+
+	data := ParseResponse(rr)
+	dataM := data["data"].(map[string]interface{})
+	roomID := dataM["id"].(string)
+
+	return roomID
 }

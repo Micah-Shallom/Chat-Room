@@ -1,138 +1,200 @@
 package test_room
 
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"testing"
 
-// import (
-// 	"bytes"
-// 	"encoding/json"
-// 	"fmt"
-// 	"net/http"
-// 	"net/http/httptest"
-// 	"net/url"
-// 	"testing"
+	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 
-// 	"github.com/gin-gonic/gin"
-// 	"github.com/go-playground/validator/v10"
+	"github.com/hngprojects/hng_boilerplate_golang_web/internal/models"
+	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/auth"
+	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/room"
+	tkn "github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/token"
+	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/middleware"
+	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage"
+	tst "github.com/hngprojects/hng_boilerplate_golang_web/tests"
+	"github.com/hngprojects/hng_boilerplate_golang_web/utility"
+)
 
-// 	"github.com/hngprojects/hng_boilerplate_golang_web/internal/models"
-// 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/auth"
-// 	tkn "github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/token"
-// 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/middleware"
-// 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage"
-// 	tst "github.com/hngprojects/hng_boilerplate_golang_web/tests"
-// 	"github.com/hngprojects/hng_boilerplate_golang_web/utility"
-// )
+func TestRoomEndpoints(t *testing.T) {
+	logger := tst.Setup()
+	gin.SetMode(gin.TestMode)
 
-// func TestRoom(t *testing.T) {
-// 	logger := tst.Setup()
-// 	gin.SetMode(gin.TestMode)
+	validatorRef := validator.New()
+	db := storage.Connection()
+	currUUID := utility.GenerateUUID()
+	userSignUpData := models.CreateUserRequestModel{
+		Email:       fmt.Sprintf("testuser%v@qa.team", currUUID),
+		PhoneNumber: fmt.Sprintf("+234%v", utility.GetRandomNumbersInRange(7000000000, 9099999999)),
+		FirstName:   "test",
+		LastName:    "user",
+		Password:    "password",
+		UserName:    fmt.Sprintf("test_username%v", currUUID),
+	}
+	loginData := models.LoginRequestModel{
+		Email:    userSignUpData.Email,
+		Password: userSignUpData.Password,
+	}
 
-// 	validatorRef := validator.New()
-// 	db := storage.Connection()
-// 	currUUID := utility.GenerateUUID()
-// 	userSignUpData := models.CreateUserRequestModel{
-// 		Email:       fmt.Sprintf("testuser%v@qa.team", currUUID),
-// 		PhoneNumber: fmt.Sprintf("+234%v", utility.GetRandomNumbersInRange(7000000000, 9099999999)),
-// 		FirstName:   "test",
-// 		LastName:    "user",
-// 		Password:    "password",
-// 		UserName:    fmt.Sprintf("test_username%v", currUUID),
-// 	}
-// 	loginData := models.LoginRequestModel{
-// 		Email:    userSignUpData.Email,
-// 		Password: userSignUpData.Password,
-// 	}
+	auth := auth.Controller{Db: db, Validator: validatorRef, Logger: logger}
+	roomController := room.Controller{Db: db, Validator: validatorRef, Logger: logger}
+	r := gin.Default()
+	tst.SignupUser(t, r, auth, userSignUpData, false)
 
-// 	auth := auth.Controller{Db: db, Validator: validatorRef, Logger: logger}
-// 	r := gin.Default()
-// 	tst.SignupUser(t, r, auth, userSignUpData, false)
+	token := tst.GetLoginToken(t, r, auth, loginData)
 
-// 	token := tst.GetLoginToken(t, r, auth, loginData)
+	createRoomReq := models.CreateRoomRequest{
+		Name:        "Test Room",
+		Description: "This is a test room",
+		Username:    userSignUpData.UserName,
+	}
 
-// 	tests := []struct {
-// 		Name         string
-// 		RequestBody  models.CreateRoomRequest
-// 		ExpectedCode int
-// 		Message      string
-// 		Method       string
-// 		Headers      map[string]string
-// 		RequestURI   url.URL
-// 	}{
-// 		{
-// 			Name:         "Room Created Successfully",
-// 			RequestBody:  models.CreateRoomRequest{},
-// 			ExpectedCode: http.StatusOK,
-// 			Message:      "token generated successfully",
-// 			Method:       http.MethodGet,
-// 			RequestURI:   url.URL{Path: "/api/v1/token/connection"},
-// 			Headers: map[string]string{
-// 				"Content-Type":  "application/json",
-// 				"Authorization": "Bearer " + token,
-// 			},
-// 		}, {
-// 			Name: "Successful subscription token generation",
-// 			RequestBody: models.ChannelSubTokenReq{
-// 				Channel: "Vibranium",
-// 			},
-// 			ExpectedCode: http.StatusOK,
-// 			Message:      "token generated successfully",
-// 			Method:       http.MethodPost,
-// 			RequestURI:   url.URL{Path: "/api/v1/token/subscription"},
-// 			Headers: map[string]string{
-// 				"Content-Type":  "application/json",
-// 				"Authorization": "Bearer " + token,
-// 			},
-// 		},
-// 	}
+	room_id := tst.CreateRoom(t, r, roomController, createRoomReq, false)
+	_ = room_id
 
-// 	tkn := tkn.Controller{Db: db, Validator: validatorRef, Logger: logger}
+	tests := []struct {
+		Name         string
+		RequestBody  models.CreateRoomRequest
+		ExpectedCode int
+		Message      string
+		Method       string
+		Headers      map[string]string
+		RequestURI   url.URL
+	}{
+		{
+			Name: "Create Room Action",
+			RequestBody: models.CreateRoomRequest{
+				Name:        "Test Room",
+				Description: "This is a test room",
+				Username:    userSignUpData.UserName,
+			},
+			ExpectedCode: http.StatusCreated,
+			Message:      "room created successfully",
+			Method:       http.MethodGet,
+			RequestURI:   url.URL{Path: "/api/v1/rooms"},
+			Headers: map[string]string{
+				"Content-Type":  "application/json",
+				"Authorization": "Bearer " + token,
+			},
+		},
+		//  {
+		// 	Name:         "Get Rooms",
+		// 	ExpectedCode: http.StatusOK,
+		// 	Message:      "rooms retrieved successfully",
+		// 	Method:       http.MethodGet,
+		// 	RequestURI:   url.URL{Path: "/api/v1/rooms/"},
+		// 	Headers: map[string]string{
+		// 		"Content-Type":  "application/json",
+		// 		"Authorization": "Bearer " + token,
+		// 	},
+		// }, {
+		// 	Name:         "Get Room",
+		// 	ExpectedCode: http.StatusOK,
+		// 	Message:      "room retrieved successfully",
+		// 	Method:       http.MethodGet,
+		// 	RequestURI:   url.URL{Path: fmt.Sprintf("/api/v1/rooms/%s", room_id)},
+		// 	Headers: map[string]string{
+		// 		"Content-Type":  "application/json",
+		// 		"Authorization": "Bearer " + token,
+		// 	},
+		// }, {
+		// 	Name:         "Get Room Messages",
+		// 	ExpectedCode: http.StatusOK,
+		// 	Message:      "room messages fetched successfully",
+		// 	Method:       http.MethodGet,
+		// 	RequestURI:   url.URL{Path: fmt.Sprintf("/api/v1/rooms/%s/messages", room_id)},
+		// 	Headers: map[string]string{
+		// 		"Content-Type":  "application/json",
+		// 		"Authorization": "Bearer " + token,
+		// 	},
+		// }, {
+		// 	Name:         "Post Room Messages",
+		// 	ExpectedCode: http.StatusCreated,
+		// 	Message:      "message added successfully",
+		// 	Method:       http.MethodPost,
+		// 	RequestURI:   url.URL{Path: fmt.Sprintf("/api/v1/rooms/%s/messages", room_id)},
+		// 	Headers: map[string]string{
+		// 		"Content-Type":  "application/json",
+		// 		"Authorization": "Bearer " + token,
+		// 	},
+		// }, {
+		// 	Name:         "Join Room",
+		// 	ExpectedCode: http.StatusOK,
+		// 	Message:      "room joined successfully",
+		// 	Method:       http.MethodPost,
+		// 	RequestURI:   url.URL{Path: fmt.Sprintf("/api/v1/rooms/%s/join", room_id)},
+		// 	Headers: map[string]string{
+		// 		"Content-Type":  "application/json",
+		// 		"Authorization": "Bearer " + token,
+		// 	},
+		// }, {
+		// 	Name:         "Leave Room",
+		// 	ExpectedCode: http.StatusOK,
+		// 	Message:      "user left room successfully",
+		// 	Method:       http.MethodPost,
+		// 	RequestURI:   url.URL{Path: fmt.Sprintf("/api/v1/rooms/%s/leave", room_id)},
+		// 	Headers: map[string]string{
+		// 		"Content-Type":  "application/json",
+		// 		"Authorization": "Bearer " + token,
+		// 	},
+		// },
+	}
 
-// 	for _, test := range tests {
-// 		r := gin.Default()
+	tkn := tkn.Controller{Db: db, Validator: validatorRef, Logger: logger}
 
-// 		tknUrl := r.Group(fmt.Sprintf("%v", "/api/v1/token"), middleware.Authorize(db.Postgresql))
-// 		{
-// 			tknUrl.GET("/connection", tkn.GetConnToken)
-// 			tknUrl.POST("/subscription", tkn.GetConnToken)
+	for _, test := range tests {
+		r := gin.Default()
 
-// 		}
+		tknUrl := r.Group(fmt.Sprintf("%v", "/api/v1/token"), middleware.Authorize(db.Postgresql))
+		{
+			tknUrl.GET("/connection", tkn.GetConnToken)
+			tknUrl.POST("/subscription", tkn.GetConnToken)
 
-// 		t.Run(test.Name, func(t *testing.T) {
-// 			var b bytes.Buffer
-// 			json.NewEncoder(&b).Encode(test.RequestBody)
+		}
 
-// 			req, err := http.NewRequest(test.Method, test.RequestURI.String(), &b)
-// 			if err != nil {
-// 				t.Fatal(err)
-// 			}
+		t.Run(test.Name, func(t *testing.T) {
+			var b bytes.Buffer
+			json.NewEncoder(&b).Encode(test.RequestBody)
 
-// 			for i, v := range test.Headers {
-// 				req.Header.Set(i, v)
-// 			}
+			req, err := http.NewRequest(test.Method, test.RequestURI.String(), &b)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-// 			rr := httptest.NewRecorder()
-// 			r.ServeHTTP(rr, req)
+			for i, v := range test.Headers {
+				req.Header.Set(i, v)
+			}
 
-// 			tst.AssertStatusCode(t, rr.Code, test.ExpectedCode)
+			rr := httptest.NewRecorder()
+			r.ServeHTTP(rr, req)
 
-// 			data := tst.ParseResponse(rr)
+			tst.AssertStatusCode(t, rr.Code, test.ExpectedCode)
 
-// 			code := int(data["status_code"].(float64))
-// 			tst.AssertStatusCode(t, code, test.ExpectedCode)
+			data := tst.ParseResponse(rr)
 
-// 			if test.Message != "" {
-// 				message := data["message"]
-// 				if message != nil {
-// 					tst.AssertResponseMessage(t, message.(string), test.Message)
-// 				} else {
-// 					tst.AssertResponseMessage(t, "", test.Message)
-// 				}
+			code := int(data["status_code"].(float64))
+			tst.AssertStatusCode(t, code, test.ExpectedCode)
 
-// 			}
-// 			genToken := data["data"].(map[string]interface{})["token"].(string)
-// 			tst.AssertBool(t, genToken != "", true)
+			if test.Message != "" {
+				message := data["message"]
+				if message != nil {
+					tst.AssertResponseMessage(t, message.(string), test.Message)
+				} else {
+					tst.AssertResponseMessage(t, "", test.Message)
+				}
 
-// 		})
+			}
+			genToken := data["data"].(map[string]interface{})["token"].(string)
+			tst.AssertBool(t, genToken != "", true)
 
-// 	}
+		})
 
-// }
+	}
+
+}
