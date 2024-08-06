@@ -187,6 +187,24 @@ func (base *Controller) AddRoomMsg(c *gin.Context) {
 }
 
 func (base *Controller) JoinRoom(c *gin.Context) {
+	var (
+		req models.JoinRoomRequest
+	)
+
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Failed to parse request body", err, nil)
+		c.JSON(http.StatusBadRequest, rd)
+		return
+	}
+
+	err = base.Validator.Struct(&req)
+	if err != nil {
+		base.Logger.Info("validation failed")
+		rd := utility.BuildErrorResponse(http.StatusUnprocessableEntity, "error", "Validation failed", utility.ValidationResponse(err, base.Validator), nil)
+		c.JSON(http.StatusUnprocessableEntity, rd)
+		return
+	}
 
 	room_id := c.Param("roomId")
 
@@ -202,7 +220,10 @@ func (base *Controller) JoinRoom(c *gin.Context) {
 
 	user_id := userClaims["user_id"].(string)
 
-	code, err := room.JoinRoom(base.Db.Postgresql, room_id, user_id)
+	req.RoomID = room_id
+	req.UserID = user_id
+
+	code, err := room.JoinRoom(base.Db.Postgresql, req)
 	if err != nil {
 		base.Logger.Info("error joining room")
 		rd := utility.BuildErrorResponse(code, "error", err.Error(), err, nil)

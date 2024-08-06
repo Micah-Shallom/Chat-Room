@@ -40,14 +40,14 @@ func CreateRoom(req models.CreateRoomRequest, db *gorm.DB, userId string) (model
 	return room, http.StatusOK, nil
 }
 
-func GetRoom(db *gorm.DB, roomID string) (models.Room, int, error) {
+func GetRoom(db *gorm.DB, roomID string) ([]models.UserRoom, int, error) {
 	var room models.Room
 
-	fetchedRoom, err := room.GetRoomByID(db, roomID)
+	fetchedUsers, err := room.GetRoomByID(db, roomID)
 	if err != nil {
-		return fetchedRoom, http.StatusBadRequest, err
+		return fetchedUsers, http.StatusBadRequest, err
 	}
-	return fetchedRoom, http.StatusOK, nil
+	return fetchedUsers, http.StatusOK, nil
 }
 
 func GetRoomMsg(roomId, userID string, db *gorm.DB) ([]models.Message, int, error) {
@@ -63,18 +63,15 @@ func GetRoomMsg(roomId, userID string, db *gorm.DB) ([]models.Message, int, erro
 
 }
 
-func JoinRoom(db *gorm.DB, room_id, user_id string) (int, error) {
+func JoinRoom(db *gorm.DB, req models.JoinRoomRequest) (int, error) {
 	var room models.Room
 
-	_, _, err := GetRoom(db, room_id)
-	if err != nil {
-		return http.StatusBadRequest, errors.New("room does not exist")
-	}
+	err := room.AddUserToRoom(db, req)
 
-	err = room.AddUserToRoom(db, room_id, user_id)
 	if err != nil {
 		return http.StatusBadRequest, err
 	}
+
 	return http.StatusOK, nil
 }
 
