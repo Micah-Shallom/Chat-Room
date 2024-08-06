@@ -16,6 +16,7 @@ import (
 	"github.com/hngprojects/hng_boilerplate_golang_web/internal/models/migrations"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/auth"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/room"
+	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/middleware"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage/postgresql"
 	"github.com/hngprojects/hng_boilerplate_golang_web/utility"
@@ -104,34 +105,37 @@ func GetLoginToken(t *testing.T, r *gin.Engine, auth auth.Controller, loginData 
 	return token
 }
 
-func CreateRoom(t *testing.T, r *gin.Engine, room room.Controller, createRoomData models.CreateRoomRequest, admin bool) string {
+func CreateRooom(t *testing.T, r *gin.Engine, room room.Controller, db *storage.Database, CreateData models.CreateRoomRequest, token string) string {
 	var (
-		createRoomPath = "/api/v1/rooms"
-		createRoomURI  = url.URL{Path: createRoomPath}
+		createPath = "/api/v1/rooms/"
+		createURI  = url.URL{Path: createPath}
 	)
 
-	r.POST(createRoomPath, room.CreateRoom)
+	roomUrl := r.Group(fmt.Sprintf("%v", "/api/v1/rooms"), middleware.Authorize(db.Postgresql))
+	{
+		roomUrl.POST("/", room.CreateRoom)
+	}
 
 	var b bytes.Buffer
-	json.NewEncoder(&b).Encode(createRoomData)
-	req, err := http.NewRequest(http.MethodPost, createRoomURI.String(), &b)
+	json.NewEncoder(&b).Encode(CreateData)
+	req, err := http.NewRequest(http.MethodPost, createURI.String(), &b)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
-	fmt.Println(rr.Body.String())
-
 	if rr.Code != http.StatusCreated {
-		t.Errorf("handler returned wrong status code: got status %d expected status %d", rr.Code, http.StatusCreated)
+		return ""
 	}
 
 	data := ParseResponse(rr)
 	dataM := data["data"].(map[string]interface{})
-	roomID := dataM["id"].(string)
+	roomID := dataM["room_id"].(string)
 
 	return roomID
 }
