@@ -15,7 +15,6 @@ import (
 	"github.com/hngprojects/hng_boilerplate_golang_web/internal/models"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/auth"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/room"
-	tkn "github.com/hngprojects/hng_boilerplate_golang_web/pkg/controller/token"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/middleware"
 	"github.com/hngprojects/hng_boilerplate_golang_web/pkg/repository/storage"
 	tst "github.com/hngprojects/hng_boilerplate_golang_web/tests"
@@ -38,8 +37,8 @@ func TestMessage(t *testing.T) {
 		UserName:    fmt.Sprintf("test_username%v", currUUID),
 	}
 	createRoomData := models.CreateRoomRequest{
-		Name: fmt.Sprintf("TestRoom%s", utility.GenerateUUID()),
-		UserName: fmt.Sprintf("Mr%sRoom", utility.GenerateUUID()),
+		Name:        fmt.Sprintf("TestRoom%s", utility.GenerateUUID()),
+		Username:    fmt.Sprintf("Mr%sRoom", utility.GenerateUUID()),
 		Description: "Some Random description",
 	}
 	loginData := models.LoginRequestModel{
@@ -49,17 +48,18 @@ func TestMessage(t *testing.T) {
 
 	auth := auth.Controller{Db: db, Validator: validatorRef, Logger: logger}
 	r := gin.Default()
+
 	tst.SignupUser(t, r, auth, userSignUpData, false)
 
-	room := room.Controller{Db: db, Validator: validator, Logger: logger}
-
-	roomId := tst.CreateRoom(t, r, room, createRoomData)
+	room := room.Controller{Db: db, Validator: validatorRef, Logger: logger}
 
 	token := tst.GetLoginToken(t, r, auth, loginData)
 
+	roomId := tst.CreateRooom(t, r, room, db, createRoomData, token)
+
 	tests := []struct {
 		Name         string
-		RequestBody  models.ChannelSubTokenReq
+		RequestBody  models.CreateMessageRequest
 		ExpectedCode int
 		Message      string
 		Method       string
@@ -67,25 +67,25 @@ func TestMessage(t *testing.T) {
 		RequestURI   url.URL
 	}{
 		{
-			Name:         "Add message Successfully",
-			RequestBody:  models.ChannelSubTokenReq{},
-			ExpectedCode: http.StatusOK,
-			Message:      "token generated successfully",
-			Method:       http.MethodGet,
-			RequestURI:   url.URL{Path: "/api/v1/token/connection"},
+			Name: "Add message Successfully",
+			RequestBody: models.CreateMessageRequest{
+				Content: "It's a nice day to check the room",
+			},
+			ExpectedCode: http.StatusCreated,
+			Message:      "message added successfully",
+			Method:       http.MethodPost,
+			RequestURI:   url.URL{Path: fmt.Sprintf("/api/v1/rooms/%s/messages", roomId)},
 			Headers: map[string]string{
 				"Content-Type":  "application/json",
 				"Authorization": "Bearer " + token,
 			},
 		}, {
-			Name: "Successful subscription token generation",
-			RequestBody: models.ChannelSubTokenReq{
-				Channel: "Vibranium",
-			},
+			Name:         "Successfully Get messages in a room",
+			RequestBody:  models.CreateMessageRequest{},
 			ExpectedCode: http.StatusOK,
-			Message:      "token generated successfully",
-			Method:       http.MethodPost,
-			RequestURI:   url.URL{Path: "/api/v1/token/subscription"},
+			Message:      "room message fetched successfully",
+			Method:       http.MethodGet,
+			RequestURI:   url.URL{Path: fmt.Sprintf("/api/v1/rooms/%s/messages", roomId)},
 			Headers: map[string]string{
 				"Content-Type":  "application/json",
 				"Authorization": "Bearer " + token,
@@ -93,15 +93,13 @@ func TestMessage(t *testing.T) {
 		},
 	}
 
-	tkn := tkn.Controller{Db: db, Validator: validatorRef, Logger: logger}
-
 	for _, test := range tests {
 		r := gin.Default()
 
-		tknUrl := r.Group(fmt.Sprintf("%v", "/api/v1/token"), middleware.Authorize(db.Postgresql))
+		tknUrl := r.Group(fmt.Sprintf("%v", "/api/v1/rooms"), middleware.Authorize(db.Postgresql))
 		{
-			tknUrl.GET("/connection", tkn.GetConnToken)
-			tknUrl.POST("/subscription", tkn.GetConnToken)
+			tknUrl.GET("/:roomId/messages", room.GetRoomMsg)
+			tknUrl.POST("/:roomId/messages", room.AddRoomMsg)
 
 		}
 
@@ -137,8 +135,6 @@ func TestMessage(t *testing.T) {
 				}
 
 			}
-			genToken := data["data"].(map[string]interface{})["token"].(string)
-			tst.AssertBool(t, genToken != "", true)
 
 		})
 

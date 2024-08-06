@@ -131,7 +131,7 @@ func (base *Controller) GetRoomMsg(c *gin.Context) {
 	}
 
 	base.Logger.Info("room message fetched successfully")
-	rd := utility.BuildSuccessResponse(http.StatusCreated, "room message fetched successfully", respData)
+	rd := utility.BuildSuccessResponse(http.StatusOK, "room message fetched successfully", respData)
 	c.JSON(code, rd)
 }
 
