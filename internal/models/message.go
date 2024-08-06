@@ -14,6 +14,7 @@ type Message struct {
 	Content   string    `gorm:"column:content; type:text; not null" json:"content"`
 	RoomID    string    `gorm:"type:uuid;not null" json:"room_id"`
 	UserID    string    `gorm:"type:uuid;not null" json:"user_id"`
+	Username  string    `gorm:"column:username; type:varchar(255)" json:"username"`
 	CreatedAt time.Time `gorm:"column:created_at; not null; autoCreateTime" json:"created_at"`
 }
 
@@ -31,6 +32,9 @@ func (m *Message) CreateMessage(db *gorm.DB) error {
 	if !exist {
 		return errors.New("user not in room")
 	}
+
+	m.Username = userRoom.Username
+
 	err := postgresql.CreateOneRecord(db, m)
 	if err != nil {
 		return err

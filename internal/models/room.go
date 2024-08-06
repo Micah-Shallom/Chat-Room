@@ -21,6 +21,7 @@ type Room struct {
 type UserRoom struct {
 	RoomID    string    `gorm:"type:uuid;primaryKey;not null" json:"room_id"`
 	UserID    string    `gorm:"type:uuid;primaryKey;not null" json:"user_id"`
+	Username  string    `gorm:"column:username; type:varchar(255)" json:"username"`
 	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"created_at"`
 	DeletedAt time.Time `gorm:"index" json:"deleted_at"`
 }
@@ -28,6 +29,12 @@ type UserRoom struct {
 type CreateRoomRequest struct {
 	Name        string `json:"name" validate:"required"`
 	Description string `json:"description" validate:"required"`
+}
+
+type JoinRoomRequest struct {
+	Userame string `json:"username" validate:"required"`
+	RoomID  string `json:"room_id" `
+	UserID  string `json:"user_id" `
 }
 
 func (r *Room) CreateRoom(db *gorm.DB) error {
@@ -38,14 +45,22 @@ func (r *Room) CreateRoom(db *gorm.DB) error {
 	return nil
 }
 
-func (r *Room) GetRoomByID(db *gorm.DB, roomID string) (Room, error) {
-	var room Room
+func (r *Room) GetRoomByID(db *gorm.DB, roomID string) ([]UserRoom, error) {
+	var users []UserRoom
 
-	err, nerr := postgresql.SelectOneFromDb(db, &room, "id = ?", roomID)
+	err := postgresql.SelectUsersFromDb(
+		db.Where("room_id = ?", roomID),
+		"",
+		&users,
+		"room_id = ?",
+		roomID,
+	)
+
 	if err != nil {
-		return room, nerr
+		return users, err
 	}
-	return room, nil
+
+	return users, nil
 }
 
 func (r *Room) GetRooms(db *gorm.DB) ([]Room, error) {
@@ -84,10 +99,14 @@ func (r *Room) GetRoomMessages(db *gorm.DB, userID, roomID string) ([]Message, e
 	return messages, nil
 }
 
-func (r *Room) AddUserToRoom(db *gorm.DB, roomID, userID string) error {
+func (r *Room) AddUserToRoom(db *gorm.DB, req JoinRoomRequest) error {
 
-	var user User
-	var room Room
+	var (
+		user   User
+		room   Room
+		userID = req.UserID
+		roomID = req.RoomID
+	)
 
 	_, err := user.GetUserByID(db, userID)
 	if err != nil {
@@ -106,8 +125,9 @@ func (r *Room) AddUserToRoom(db *gorm.DB, roomID, userID string) error {
 	}
 
 	userRoom = UserRoom{
-		RoomID: roomID,
-		UserID: userID,
+		RoomID:   roomID,
+		UserID:   userID,
+		Username: req.Userame,
 	}
 
 	err = postgresql.CreateOneRecord(db, &userRoom)
