@@ -58,9 +58,17 @@ func (r *Room) GetRooms(db *gorm.DB) ([]Room, error) {
 	return rooms, nil
 }
 
-func (r *Room) GetRoomMessages(db *gorm.DB, roomID string) ([]Message, error) {
+func (r *Room) GetRoomMessages(db *gorm.DB, userID, roomID string) ([]Message, error) {
 
-	var messages []Message
+	var (
+		messages []Message
+		userRoom UserRoom
+	)
+
+	exist := postgresql.CheckExists(db, &userRoom, "room_id = ? AND user_id = ?", roomID, userID)
+	if !exist {
+		return messages, errors.New("user not in room")
+	}
 
 	err := postgresql.SelectAllFromDb(
 		db.Where("room_id = ?", roomID),

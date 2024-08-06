@@ -45,10 +45,10 @@ func GetRoom(db *gorm.DB, roomID string) (models.Room, int, error) {
 	return fetchedRoom, http.StatusOK, nil
 }
 
-func GetRoomMsg(roomId string, db *gorm.DB) ([]models.Message, int, error) {
+func GetRoomMsg(roomId, userID string, db *gorm.DB) ([]models.Message, int, error) {
 	var message models.Message
 
-	resp, err := message.GetMessagesByRoomID(db, roomId)
+	resp, err := message.GetMessagesByRoomID(db, userID, roomId)
 
 	if err != nil {
 		return []models.Message{}, http.StatusBadRequest, err
