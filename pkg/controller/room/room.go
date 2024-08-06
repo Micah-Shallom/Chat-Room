@@ -264,6 +264,6 @@ func (base *Controller) LeaveRoom(c *gin.Context) {
 	}
 
 	base.Logger.Info("user left room successfully")
-	rd := utility.BuildSuccessResponse(http.StatusCreated, "user left room successfully", gin.H{})
+	rd := utility.BuildSuccessResponse(http.StatusOK, "user left room successfully", gin.H{})
 	c.JSON(code, rd)
 }

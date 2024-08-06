@@ -58,7 +58,7 @@ func TestRoomEndpoints(t *testing.T) {
 
 	tests := []struct {
 		Name         string
-		RequestBody  models.CreateRoomRequest
+		RequestBody  interface{}
 		ExpectedCode int
 		Message      string
 		Method       string
@@ -81,8 +81,8 @@ func TestRoomEndpoints(t *testing.T) {
 				"Authorization": "Bearer " + token,
 			},
 		},
-		 {
-			Name:         "Get Rooms",
+		{
+			Name:         "Get Rooms Action",
 			ExpectedCode: http.StatusOK,
 			Message:      "rooms retrieved successfully",
 			Method:       http.MethodGet,
@@ -91,59 +91,43 @@ func TestRoomEndpoints(t *testing.T) {
 				"Content-Type":  "application/json",
 				"Authorization": "Bearer " + token,
 			},
-		}, 
+		},
 		{
-			Name:         "Get Room",
+			Name:         "Get Room Action",
 			ExpectedCode: http.StatusOK,
-			Message:      "room retrieved successfully",
+			Message:      "room retreived successfully",
 			Method:       http.MethodGet,
 			RequestURI:   url.URL{Path: fmt.Sprintf("/api/v1/rooms/%s", room_id)},
 			Headers: map[string]string{
 				"Content-Type":  "application/json",
 				"Authorization": "Bearer " + token,
 			},
+		},
+		{
+			Name:         "Leave Room Action",
+			ExpectedCode: http.StatusOK,
+			Message:      "user left room successfully",
+			Method:       http.MethodPost,
+			RequestURI:   url.URL{Path: fmt.Sprintf("/api/v1/rooms/%s/leave", room_id)},
+			Headers: map[string]string{
+				"Content-Type":  "application/json",
+				"Authorization": "Bearer " + token,
+			},
+		},
+		{
+			Name:         "Join Room Action",
+			ExpectedCode: http.StatusOK,
+			Message:      "room joined successfully",
+			RequestBody:  models.JoinRoomRequest{
+				Username: userSignUpData.UserName,
+			},
+			Method:     http.MethodPost,
+			RequestURI: url.URL{Path: fmt.Sprintf("/api/v1/rooms/%s/join", room_id)},
+			Headers: map[string]string{
+				"Content-Type":  "application/json",
+				"Authorization": "Bearer " + token,
+			},
 		}, 
-		// {
-		// 	Name:         "Get Room Messages",
-		// 	ExpectedCode: http.StatusOK,
-		// 	Message:      "room messages fetched successfully",
-		// 	Method:       http.MethodGet,
-		// 	RequestURI:   url.URL{Path: fmt.Sprintf("/api/v1/rooms/%s/messages", room_id)},
-		// 	Headers: map[string]string{
-		// 		"Content-Type":  "application/json",
-		// 		"Authorization": "Bearer " + token,
-		// 	},
-		// }, {
-		// 	Name:         "Post Room Messages",
-		// 	ExpectedCode: http.StatusCreated,
-		// 	Message:      "message added successfully",
-		// 	Method:       http.MethodPost,
-		// 	RequestURI:   url.URL{Path: fmt.Sprintf("/api/v1/rooms/%s/messages", room_id)},
-		// 	Headers: map[string]string{
-		// 		"Content-Type":  "application/json",
-		// 		"Authorization": "Bearer " + token,
-		// 	},
-		// }, {
-		// 	Name:         "Join Room",
-		// 	ExpectedCode: http.StatusOK,
-		// 	Message:      "room joined successfully",
-		// 	Method:       http.MethodPost,
-		// 	RequestURI:   url.URL{Path: fmt.Sprintf("/api/v1/rooms/%s/join", room_id)},
-		// 	Headers: map[string]string{
-		// 		"Content-Type":  "application/json",
-		// 		"Authorization": "Bearer " + token,
-		// 	},
-		// }, {
-		// 	Name:         "Leave Room",
-		// 	ExpectedCode: http.StatusOK,
-		// 	Message:      "user left room successfully",
-		// 	Method:       http.MethodPost,
-		// 	RequestURI:   url.URL{Path: fmt.Sprintf("/api/v1/rooms/%s/leave", room_id)},
-		// 	Headers: map[string]string{
-		// 		"Content-Type":  "application/json",
-		// 		"Authorization": "Bearer " + token,
-		// 	},
-		// },
 	}
 
 	room := room.Controller{Db: db, Validator: validatorRef, Logger: logger}
@@ -155,7 +139,9 @@ func TestRoomEndpoints(t *testing.T) {
 		{
 			roomUrl.GET("/", room.GetRooms)
 			roomUrl.POST("/", room.CreateRoom)
-
+			roomUrl.GET("/:roomId", room.GetRoom)
+			roomUrl.POST("/:roomId/join", room.JoinRoom)
+			roomUrl.POST("/:roomId/leave", room.LeaveRoom)
 		}
 
 		t.Run(test.Name, func(t *testing.T) {
