@@ -55,7 +55,7 @@ func TestMessage(t *testing.T) {
 
 	token := tst.GetLoginToken(t, r, auth, loginData)
 
-	roomId := tst.CreateRooom(t, r, room, db, createRoomData, token)
+	roomId := tst.CreateRoom(t, r, room, db, createRoomData, token)
 
 	tests := []struct {
 		Name         string
@@ -83,7 +83,7 @@ func TestMessage(t *testing.T) {
 			Name:         "Successfully Get messages in a room",
 			RequestBody:  models.CreateMessageRequest{},
 			ExpectedCode: http.StatusOK,
-			Message:      "room message fetched successfully",
+			Message:      "room messages fetched successfully",
 			Method:       http.MethodGet,
 			RequestURI:   url.URL{Path: fmt.Sprintf("/api/v1/rooms/%s/messages", roomId)},
 			Headers: map[string]string{
