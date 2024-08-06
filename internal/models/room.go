@@ -27,12 +27,13 @@ type UserRoom struct {
 }
 
 type CreateRoomRequest struct {
+	Username     string `json:"username" validate:"required"`
 	Name        string `json:"name" validate:"required"`
 	Description string `json:"description" validate:"required"`
 }
 
 type JoinRoomRequest struct {
-	Userame string `json:"username" validate:"required"`
+	Username string `json:"username" validate:"required"`
 	RoomID  string `json:"room_id" `
 	UserID  string `json:"user_id" `
 }
@@ -127,7 +128,7 @@ func (r *Room) AddUserToRoom(db *gorm.DB, req JoinRoomRequest) error {
 	userRoom = UserRoom{
 		RoomID:   roomID,
 		UserID:   userID,
-		Username: req.Userame,
+		Username: req.Username,
 	}
 
 	err = postgresql.CreateOneRecord(db, &userRoom)

@@ -21,6 +21,7 @@ func GetRooms(db *gorm.DB) ([]models.Room, int, error) {
 }
 
 func CreateRoom(req models.CreateRoomRequest, db *gorm.DB, userId string) (models.Room, int, error) {
+	var joinRoomReq models.JoinRoomRequest
 
 	room := models.Room{
 		ID:          utility.GenerateUUID(),
@@ -28,12 +29,16 @@ func CreateRoom(req models.CreateRoomRequest, db *gorm.DB, userId string) (model
 		Description: req.Description,
 	}
 
+	joinRoomReq.RoomID = room.ID
+	joinRoomReq.UserID = userId
+	joinRoomReq.Username = req.Username
+
 	err := room.CreateRoom(db)
 	if err != nil {
 		return room, http.StatusBadRequest, err
 	}
 
-	err = room.AddUserToRoom(db, room.ID, userId)
+	err = room.AddUserToRoom(db, joinRoomReq)
 	if err != nil {
 		return room, http.StatusBadRequest, err
 	}

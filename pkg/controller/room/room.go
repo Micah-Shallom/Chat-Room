@@ -26,7 +26,7 @@ type Controller struct {
 func (base *Controller) CreateRoom(c *gin.Context) {
 	var req models.CreateRoomRequest
 
-	claims, exists := c.Get("claims")
+	claims, exists := c.Get("userClaims")
 	if !exists {
 		base.Logger.Info("error getting claims")
 		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "error getting claims", nil, nil)
@@ -34,7 +34,6 @@ func (base *Controller) CreateRoom(c *gin.Context) {
 		return
 	}
 	userClaims := claims.(jwt.MapClaims)
-
 	userId := userClaims["user_id"].(string)
 
 	err := c.ShouldBindJSON(&req)
