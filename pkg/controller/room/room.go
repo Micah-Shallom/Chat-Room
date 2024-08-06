@@ -113,8 +113,18 @@ func (base *Controller) GetRoomMsg(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, rd)
 		return
 	}
+	claims, exists := c.Get("userClaims")
 
-	respData, code, err := room.GetRoomMsg(RoomId, base.Db.Postgresql)
+	if !exists {
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "unable to get user claims", errors.New("user not authorized"), nil)
+		c.JSON(http.StatusBadRequest, rd)
+		return
+	}
+	userClaims := claims.(jwt.MapClaims)
+
+	UserId := userClaims["user_id"].(string)
+
+	respData, code, err := room.GetRoomMsg(RoomId, UserId, base.Db.Postgresql)
 	if err != nil {
 		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
 		c.JSON(http.StatusBadRequest, rd)
@@ -233,7 +243,7 @@ func (base *Controller) LeaveRoom(c *gin.Context) {
 		return
 	}
 
-	base.Logger.Info("user created successfully")
-	rd := utility.BuildSuccessResponse(http.StatusCreated, "user created successfully", gin.H{})
+	base.Logger.Info("user left room successfully")
+	rd := utility.BuildSuccessResponse(http.StatusCreated, "user left room successfully", gin.H{})
 	c.JSON(code, rd)
 }

@@ -30,12 +30,12 @@ func CreateRoom(req models.CreateRoomRequest, db *gorm.DB, userId string) (model
 
 	err := room.CreateRoom(db)
 	if err != nil {
-		return room, http.StatusInternalServerError, err
+		return room, http.StatusBadRequest, err
 	}
 
 	err = room.AddUserToRoom(db, room.ID, userId)
 	if err != nil {
-		return room, http.StatusInternalServerError, err
+		return room, http.StatusBadRequest, err
 	}
 	return room, http.StatusOK, nil
 }
@@ -45,18 +45,18 @@ func GetRoom(db *gorm.DB, roomID string) (models.Room, int, error) {
 
 	fetchedRoom, err := room.GetRoomByID(db, roomID)
 	if err != nil {
-		return fetchedRoom, http.StatusInternalServerError, err
+		return fetchedRoom, http.StatusBadRequest, err
 	}
 	return fetchedRoom, http.StatusOK, nil
 }
 
-func GetRoomMsg(roomId string, db *gorm.DB) ([]models.Message, int, error) {
+func GetRoomMsg(roomId, userID string, db *gorm.DB) ([]models.Message, int, error) {
 	var message models.Message
 
-	resp, err := message.GetMessagesByRoomID(db, roomId)
+	resp, err := message.GetMessagesByRoomID(db, userID, roomId)
 
 	if err != nil {
-		return []models.Message{}, http.StatusInternalServerError, err
+		return []models.Message{}, http.StatusBadRequest, err
 	}
 
 	return resp, http.StatusOK, nil
@@ -73,7 +73,7 @@ func JoinRoom(db *gorm.DB, room_id, user_id string) (int, error) {
 
 	err = room.AddUserToRoom(db, room_id, user_id)
 	if err != nil {
-		return http.StatusInternalServerError, err
+		return http.StatusBadRequest, err
 	}
 	return http.StatusOK, nil
 }
@@ -88,13 +88,14 @@ func LeaveRoom(db *gorm.DB, room_id, user_id string) (int, error) {
 
 	err = room.RemoveUserFromRoom(db, room_id, user_id)
 	if err != nil {
-		return http.StatusInternalServerError, err
+		return http.StatusBadRequest, err
 	}
 	return http.StatusOK, nil
 
 }
 
 func AddRoomMsg(req models.CreateMessageRequest, db *gorm.DB) (int, error) {
+
 	message := models.Message{
 		Content: req.Content,
 		RoomID:  req.RoomId,
@@ -104,7 +105,7 @@ func AddRoomMsg(req models.CreateMessageRequest, db *gorm.DB) (int, error) {
 	err := message.CreateMessage(db)
 
 	if err != nil {
-		return http.StatusInternalServerError, err
+		return http.StatusBadRequest, err
 	}
 
 	return http.StatusCreated, nil

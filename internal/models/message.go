@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"time"
 
 	"gorm.io/gorm"
@@ -9,7 +10,7 @@ import (
 )
 
 type Message struct {
-	ID        string    `gorm:"column:message_id; type:int; autoIncrement; primaryKey" json:"message_id"`
+	ID        int       `gorm:"column:id; type:serial; primaryKey" json:"id"`
 	Content   string    `gorm:"column:content; type:text; not null" json:"content"`
 	RoomID    string    `gorm:"type:uuid;not null" json:"room_id"`
 	UserID    string    `gorm:"type:uuid;not null" json:"user_id"`
@@ -22,9 +23,14 @@ type CreateMessageRequest struct {
 	RoomId  string `json:"room_id"`
 }
 
-func (m *Message) CreateMessage(db *gorm.DB, userID string) error {
-	
+func (m *Message) CreateMessage(db *gorm.DB) error {
 
+	var userRoom UserRoom
+
+	exist := postgresql.CheckExists(db, &userRoom, "room_id = ? AND user_id = ?", m.RoomID, m.UserID)
+	if !exist {
+		return errors.New("user not in room")
+	}
 	err := postgresql.CreateOneRecord(db, m)
 	if err != nil {
 		return err
@@ -32,8 +38,14 @@ func (m *Message) CreateMessage(db *gorm.DB, userID string) error {
 	return nil
 }
 
-func (m *Message) GetMessagesByRoomID(db *gorm.DB, roomID string) ([]Message, error) {
+func (m *Message) GetMessagesByRoomID(db *gorm.DB, userId, roomID string) ([]Message, error) {
 	var messages []Message
+	var userRoom UserRoom
+
+	exist := postgresql.CheckExists(db, &userRoom, "room_id = ? AND user_id = ?", roomID, userId)
+	if !exist {
+		return messages, errors.New("user not in room")
+	}
 
 	err := postgresql.SelectAllFromDb(db, "", &messages, "room_id = ?", roomID)
 	if err != nil {
