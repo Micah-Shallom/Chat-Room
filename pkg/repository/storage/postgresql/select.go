@@ -247,3 +247,11 @@ func PreloadEntities(db *gorm.DB, model interface{}, preloads ...string) *gorm.D
 	}
 	return db
 }
+
+func SelectUsersFromDb(db *gorm.DB, order string, receiver interface{}, query interface{}, args ...interface{}) error {
+	if order == "" {
+		order = "desc"
+	}
+	tx := db.Order("room_id "+order).Where(query, args...).Find(receiver)
+	return tx.Error
+}

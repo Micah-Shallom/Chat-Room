@@ -13,7 +13,7 @@ import (
 
 type Response struct {
 	Status     string      `json:"status,omitempty"`
-	Code       int         `json:"code,omitempty"`
+	Code       int         `json:"status_code,omitempty"`
 	Name       string      `json:"name,omitempty"` //name of the error
 	Message    string      `json:"message,omitempty"`
 	Error      interface{} `json:"error,omitempty"` //for errors that occur even if request is successful
