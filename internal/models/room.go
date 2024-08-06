@@ -11,7 +11,7 @@ import (
 
 type Room struct {
 	ID          string    `gorm:"type:uuid;primary_key" json:"room_id"`
-	Name        string    `gorm:"column:name; type:text; not null" json:"name"`
+	Name        string    `gorm:"column:name;unique type:text; not null" json:"name"`
 	Description string    `gorm:"column:description; type:text; not null" json:"description"`
 	Users       []User    `gorm:"many2many:user_rooms;" json:"users"`
 	CreatedAt   time.Time `gorm:"column:created_at; not null; autoCreateTime" json:"created_at"`
@@ -27,6 +27,7 @@ type UserRoom struct {
 }
 
 type CreateRoomRequest struct {
+	Username     string `json:"username" validate:"required"`
 	Name        string `json:"name" validate:"required"`
 	Description string `json:"description" validate:"required"`
 }

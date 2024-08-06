@@ -26,6 +26,16 @@ type Controller struct {
 func (base *Controller) CreateRoom(c *gin.Context) {
 	var req models.CreateRoomRequest
 
+	claims, exists := c.Get("userClaims")
+	if !exists {
+		base.Logger.Info("error getting claims")
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "error getting claims", nil, nil)
+		c.JSON(http.StatusBadRequest, rd)
+		return
+	}
+	userClaims := claims.(jwt.MapClaims)
+	userId := userClaims["user_id"].(string)
+
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
 		base.Logger.Info("error parsing request body")
@@ -42,7 +52,7 @@ func (base *Controller) CreateRoom(c *gin.Context) {
 		return
 	}
 
-	respData, code, err := room.CreateRoom(req, base.Db.Postgresql)
+	respData, code, err := room.CreateRoom(req, base.Db.Postgresql, userId)
 	if err != nil {
 		base.Logger.Info("error creating room")
 		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
